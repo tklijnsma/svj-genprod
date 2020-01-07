@@ -31,17 +31,78 @@ SVJ_OUTPUT_DIR = '/tmp/svj/output'
 # This variable will be set to True if using the svjgenprod-batch script
 BATCH_MODE = False
 
-# Convenience global variable. Will be set by svjgenprod-batch if a tarball
-# preprocessing directive is given
-SVJ_TARBALL = None
 
-# Overwrite global vars based on environment variables
-import environment
-# environment.read_environment()
+#____________________________________________________________________
+# Setting module-level global variables based on environment
+
+def read_environment():
+    """ Defines a bunch of global variables of the package based on environment """
+    env = os.environ
+
+    if 'SVJ_SEED' in env:
+        set_seed(env['SVJ_SEED'])
+        logger.info(
+            'Taking seed from SVJ_SEED environment variable: {0}'
+            .format(SVJ_SEED)
+            )
+
+    # Path to the genproductions repo installation
+    try:
+        global MG_GENPROD_DIR
+        MG_GENPROD_DIR = env['MG_GENPROD_DIR']
+    except KeyError:
+        logger.warning(
+            '$MG_GENPROD_DIR not set. Tarball generation will not work. '
+            'Install the CMSSW genproductions package if you want to generate tarballs.'
+            )
+
+    if 'SVJ_BATCH_MODE' in env:
+        batch_mode = env['SVJ_BATCH_MODE'].rstrip().lower()
+        if batch_mode == 'lpc':
+            batch_mode_lpc()
+        else:
+            raise ValueError(
+                'Unknown batch mode {0}. If you are not trying '
+                'to run on a batch system, unset the SVJ_BATCH_MODE '
+                'environment variable.'
+                .format(batch_mode)
+                )
+
+def batch_mode_lpc():
+    global BATCH_MODE
+    BATCH_MODE = True
+    try:
+        scratch_dir = os.environ['_CONDOR_SCRATCH_DIR']
+        global MG_MODEL_DIR
+        global MG_INPUT_DIR
+        global RUN_GRIDPACK_DIR
+        global RUN_FULLSIM_DIR
+        global SVJ_OUTPUT_DIR
+        MG_MODEL_DIR     = osp.join(scratch_dir, 'svj/models')
+        MG_INPUT_DIR     = osp.join(scratch_dir, 'svj/inputs')
+        RUN_GRIDPACK_DIR = osp.join(scratch_dir, 'svj/rungridpack')
+        RUN_FULLSIM_DIR  = osp.join(scratch_dir, 'svj/runfullsim')
+        SVJ_OUTPUT_DIR   = osp.join(scratch_dir, 'output')
+    except KeyError:
+        logger.error(
+            'Attempted to setup for batch mode (lpc), but ${_CONDOR_SCRATCH_DIR} is not set.'
+            )
+        raise
+
+def set_seed(seed):
+    global SVJ_SEED
+    SVJ_SEED = int(seed)
+    logger.info('Setting seed to {0}'.format(SVJ_SEED))
+
+read_environment()
+
+#____________________________________________________________________
+# Convenience global scope functions
 
 def tarball(outfile=None, dry=False):
     """ Wrapper function to create a tarball of svj.genprod """
     return svj.core.utils.tarball(__file__, outfile=outfile, dry=dry)
+
 
 #____________________________________________________________________
 # Package imports
