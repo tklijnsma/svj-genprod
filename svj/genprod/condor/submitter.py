@@ -108,7 +108,7 @@ class PySubmitter(Submitter):
             try:
                 from cjm import TodoList
                 logger.info('Found installation of cjm')
-                if not dry: TodoList.submit(jdl_file)
+                if not dry: TodoList().submit(jdl_file)
             except ImportError:
                 logger.info('Submitting using plain condor_submit')
                 cmd = ['condor_submit', jdl_file]
