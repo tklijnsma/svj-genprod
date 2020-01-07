@@ -5,6 +5,7 @@ import os.path as osp
 import os, logging
 from time import strftime
 import svj.core
+logger = logging.getLogger('root')
 
 #____________________________________________________________________
 # Global scope for genprod
