@@ -289,12 +289,19 @@ def tarball_head(outfile=None):
     """
     Creates a tarball of the latest commit
     """
-
     if outfile is None:
         outfile = osp.join(os.getcwd(), 'svj.genprod.tar')
     outfile = osp.abspath(outfile)
 
     with switchdir(osp.join(svj.genprod.SVJ_TOP_DIR, '..')):
+        try:
+            run_command(['git', 'diff-index', '--quiet', 'HEAD', '--'])
+        except subprocess.CalledProcessError:
+            logger.error(
+                'Uncommitted changes detected; it is unlikely you want a tarball '
+                'with some changes not committed.'
+                )
+            raise
         run_command(['git', 'archive', '-o', outfile, 'HEAD'])
 
 
@@ -309,7 +316,7 @@ def get_mg_crosssection_from_logfile(log_file):
                 'Could not determine cross section from log_file {0}'.format(log_file)
                 )
     xs = match.group(1)
-    logger.info('Found cross section {0} from log_file'.format(xs))
+    logger.info('Found cross section %s from log_file %s', xs, log_file)
     return float(xs)
 
 def copy_to_output(file, change_name=None, dry=False):
