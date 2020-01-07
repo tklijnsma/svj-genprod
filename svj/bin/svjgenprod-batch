@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os.path as osp
+import argparse, logging, shutil, os
+import svjgenprod
+from time import strftime
+logger = logging.getLogger('root')
+
+USE_LOCAL_REPO = True
+
+#____________________________________________________________________
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'pythonfile', type=str,
+        help='Path to the python executable containing the job instructions'
+        )
+    parser.add_argument(
+        '--njobs', type=int, default=1,
+        help='Number of jobs to submit'
+        )
+    parser.add_argument(
+        '--nevents', type=int, default=10,
+        help='Number of required events *per job*'
+        )
+    parser.add_argument(
+        '-s', '--seed', type=int, default=1001,
+        help='Starting seed. Will be incremented by 1 for each job.'
+        )
+    parser.add_argument(
+        '-i', '--infiles', metavar='file', type=str, nargs='+',
+        default = [],
+        help = 'List of filenames to be used in the job'
+        )
+    parser.add_argument(
+        '-r', '--rundir', type=str,
+        help=(
+            'Directory where logs of the job will be stored. '
+            'Default is basename of the python file with some unique suffix.'
+            )
+        )
+    parser.add_argument(
+        '-d', '--dry', action='store_true',
+        help='Only print the .sh and .jdl contents, but do not create files or submit.'
+        )
+    parser.add_argument(
+        '--local', action='store_true',
+        help=(
+            'Run locally instead. Environment variables will still be set, '
+            'but the .sh file will not be ran.'
+            )
+        )
+    args = parser.parse_args()
+
+    # Overwrite command line options if there are directives set directly in the python file
+    preprocessing = svjgenprod.utils.read_preprocessing_directives(args.pythonfile)
+    if 'tarball' in preprocessing:
+        svjgenprod.logger.info(
+            'Passing %s based on preprocessing directive in %s',
+            preprocessing['tarball'], args.pythonfile
+            )
+        svjgenprod.SVJ_TARBALL = preprocessing['tarball']
+        args.infiles.insert(0, preprocessing['tarball'])
+    if 'n_jobs' in preprocessing:
+        svjgenprod.logger.info(
+            'Setting n_jobs %s based on preprocessing directive in %s',
+            preprocessing['n_jobs'], args.pythonfile
+            )
+        args.njobs = int(preprocessing['n_jobs'])
+
+
+    if args.local:
+        local(args)
+    else:
+        batch(args)
+
+
+def local(args):
+    """
+    Runs the specified python file locally.
+    Only sets a few environment variables to simulate the job environment.
+    """
+    logger.info('Running locally; ignoring njobs argument and doing only 1 job')
+    env = os.environ.copy()
+    if args.infiles:
+        env['SVJ_INFILES'] = ','.join(args.infiles)
+    env['SVJ_NEVENTS'] = str(args.nevents)  # Must be string
+    env['SVJ_SEED'] = str(args.seed)  # Must be string
+    svjgenprod.utils.run_command(
+        ['python', args.pythonfile],
+        env=env
+        )
+
+
+def batch(args):
+    # Make sure there is an active grid proxy
+    svjgenprod.utils.check_proxy()
+    svjgenprod.environment.set_seed(args.seed)
+
+    # Create a run directory in which logs etc. will be put
+    python_basename = osp.basename(args.pythonfile).replace('.py', '')
+    if args.rundir:
+        rundir = args.rundir
+    else:
+        rundir = python_basename + strftime('_%Y%m%d_%H%M%S')
+    svjgenprod.utils.create_directory(rundir, must_not_exist=True, dry=args.dry)
+
+    # Copy python file to rundir so that it is preserved
+    python_file = osp.join(rundir, osp.basename(args.pythonfile))
+    logger.info('Copying {0} to {1}'.format(args.pythonfile, python_file))
+    if not args.dry:
+        shutil.copyfile(args.pythonfile, python_file)
+
+
+    infiles = [] if args.infiles is None else args.infiles
+    if USE_LOCAL_REPO:
+        # Create a tarball of the local git repo and pass it as in input file
+        svjgenprod_tarball = osp.join(rundir, 'svjgenprod.tar')
+        logger.info('Creating tarball {0} and passing as input file'.format(svjgenprod_tarball))
+        if not args.dry: svjgenprod.utils.tarball_head(svjgenprod_tarball)
+        infiles.append(svjgenprod_tarball)
+
+    # Generate .sh file
+    sh_file = osp.join(rundir, python_basename + '.sh')
+    sh = svjgenprod.condor.shfile.SHStandard(
+        python_file = python_file,
+        svjgenprod_tarball = svjgenprod_tarball if USE_LOCAL_REPO else None
+        )
+    sh.to_file(sh_file, args.dry)
+
+    # Generate .jdl file
+    jdl_file = osp.join(rundir, python_basename + '.jdl')
+    jdl = svjgenprod.condor.jdlfile.JDLStandard(
+        sh_file = sh_file,
+        python_file = python_file,
+        n_jobs = args.njobs,
+        n_events_per_job = args.nevents,
+        infiles = infiles,
+        )
+    jdl.to_file(jdl_file, args.dry)
+
+    # Create also a small script to delete the output and logs
+    clean_sh_file = osp.join(rundir, 'clean.sh')
+    svjgenprod.condor.shfile.SHClean().to_file(clean_sh_file, dry=args.dry)
+
+    # Execute the submit command
+    # cmd = ['condor_submit', osp.basename(jdl_file)]
+    logger.warning('FIXME: Hard-coded for cjm-submit now')
+    cmd = ['/uscms/home/klijnsma/.local/bin/cjm-submit', osp.basename(jdl_file)]
+
+    with svjgenprod.utils.switchdir(rundir, dry=args.dry):
+        svjgenprod.utils.run_command(cmd, dry=args.dry, shell=True)
+
+#____________________________________________________________________
+if __name__ == "__main__":
+    main()
