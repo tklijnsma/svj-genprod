@@ -4,14 +4,10 @@
 import os.path as osp
 import os, logging
 from time import strftime
-import svj
+import svj.core
 
 #____________________________________________________________________
-# Global scope
-
-from .logger import setup_logger, setup_subprocess_logger, set_log_file
-logger = setup_logger()
-subprocess_logger = setup_subprocess_logger()
+# Global scope for genprod
 
 SVJ_TOP_DIR = osp.abspath(osp.dirname(__file__))
 
@@ -43,11 +39,14 @@ SVJ_TARBALL = None
 import environment
 # environment.read_environment()
 
+def tarball(outfile=None, dry=False):
+    """ Wrapper function to create a tarball of svj.genprod """
+    return svj.core.utils.tarball(__file__, outfile=outfile, dry=dry)
 
 #____________________________________________________________________
 # Package imports
 
-import utils
+from . import utils
 from .config import Config
 from semanager import SEManager
 from .gridpackgenerator import GridpackGenerator
@@ -60,4 +59,5 @@ import fullsimrunners
 
 import condor.jdlfile
 import condor.shfile
+import condor.submitter
 

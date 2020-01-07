@@ -81,7 +81,7 @@ class SEManager(object):
         mgm, directory = self._safe_split_mgm(directory)
         logger.warning('Creating directory on SE: {0}'.format(self._join_mgm_lfn(mgm, directory)))
         cmd = [ 'xrdfs', mgm, 'mkdir', '-p', directory ]
-        svj.genprod.utils.run_command(cmd)
+        svj.core.utils.run_command(cmd)
 
     def is_directory(self, directory):
         """
@@ -105,5 +105,5 @@ class SEManager(object):
             self.create_directory(parent_directory)
         logger.warning('Copying {0} to {1}'.format(src, dst))
         cmd = [ 'xrdcp', '-s', src, dst ]
-        svj.genprod.utils.run_command(cmd)
+        svj.core.utils.run_command(cmd)
 

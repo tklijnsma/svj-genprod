@@ -21,7 +21,7 @@ class GridpackGenerator(object):
     def __init__(self, config):
         super(GridpackGenerator, self).__init__()
         self.config = svj.genprod.Config.flexible_init(config)
-        svj.genprod.utils.check_scram_arch()
+        svj.core.utils.check_scram_arch()
         self.force_renew_model_dir = True
         self.force_renew_input_dir = True
         self.force_renew_gridpack_dir = True
@@ -87,7 +87,7 @@ class GridpackGenerator(object):
         self.write_param_card()
 
     def create_model_dir(self):
-        created = svj.genprod.utils.create_directory(self.new_model_dir, force=self.force_renew_model_dir)
+        created = svj.core.utils.create_directory(self.new_model_dir, force=self.force_renew_model_dir)
         if not created:
             logger.info('Not re-copying in template files')
             return
@@ -117,7 +117,7 @@ class GridpackGenerator(object):
         self.new_input_dir = osp.join(self.mg_input_dir, self.model_name + '_input')
         logger.info('Preparing input_cards_dir: {0}'.format(self.new_input_dir))
         logger.info('Getting templates from mg_input_template_dir: {0}'.format(self.template_input_dir))
-        svj.genprod.utils.create_directory(self.new_input_dir, force=self.force_renew_input_dir)
+        svj.core.utils.create_directory(self.new_input_dir, force=self.force_renew_input_dir)
 
         def fill_template(card_file, model_name, total_events, lhaid):
             with open(card_file, 'r+') as f:
@@ -152,11 +152,11 @@ class GridpackGenerator(object):
 
 
     def compile_gridpack(self):
-        with svj.genprod.utils.switchdir(self.mg_genprod_dir):
+        with svj.core.utils.switchdir(self.mg_genprod_dir):
             assert osp.isfile('gridpack_generation.sh')
             self.logfile = osp.abspath(self.model_name + '.log') # Expected location of log file
 
-            svj.genprod.utils.create_directory(
+            svj.core.utils.create_directory(
                 self.model_name,
                 force = self.force_renew_gridpack_dir,
                 must_not_exist = True
@@ -186,7 +186,7 @@ class GridpackGenerator(object):
                 input_cards_dir_relative,
                 ]
             try:
-                svj.genprod.utils.run_command(cmd, env=env)
+                svj.core.utils.run_command(cmd, env=env)
                 if self.cleanup_gp_generation_dir:
                     logger.warning('Deleting %s', self.model_name)
                     shutil.rmtree(self.model_name)
@@ -224,7 +224,7 @@ class GridpackGenerator(object):
                 strftime('%y%m%d_%H%M_') + self.model_name
                 )
         try:
-            svj.genprod.utils.create_directory(output_dir, must_not_exist=True)
+            svj.core.utils.create_directory(output_dir, must_not_exist=True)
         except OSError:
             logger.error(
                 'Directory {0} already exists; '

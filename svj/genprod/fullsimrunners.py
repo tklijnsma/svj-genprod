@@ -43,7 +43,7 @@ class FullSimRunnerGenSim(FullSimRunnerBase):
         """
         Creates the gensimfragment
         """
-        svj.genprod.utils.create_directory(self.gensimfragment_dir)
+        svj.core.utils.create_directory(self.gensimfragment_dir)
         gensimfragment = svj.genprod.GenSimFragment(self.config)
         gensimfragment.to_file(self.gensimfragment_file)
         self.compile_cmssw()

@@ -75,7 +75,6 @@ class JDLStandard(JDLBase):
         self.python_file = osp.abspath(python_file)
         self.n_jobs = n_jobs
         self.n_events_per_job = n_events_per_job
-        self.environment['SVJ_NEVENTS'] = n_events_per_job
         self.environment['SVJ_BATCH_MODE'] = 'lpc'
 
         if type(infiles) == str:

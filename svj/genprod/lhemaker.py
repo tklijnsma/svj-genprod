@@ -72,7 +72,7 @@ class LHEMaker(object):
         def copy():
             logger.warning('Copying {0} ==> {1}'.format(self.tarball, dst))
             shutil.copyfile(self.tarball, dst)
-        svj.genprod.utils.create_directory(osp.dirname(dst))
+        svj.core.utils.create_directory(osp.dirname(dst))
         if osp.isfile(dst):
             if self.force_renew_tarball:
                 logger.warning('Removing previously existing {0}'.format(dst))
@@ -89,11 +89,11 @@ class LHEMaker(object):
             raise ValueError('Unexpected file extension for tarball {0}'.format(tarball))
         if dst is None: dst = tarball.replace('.tar.xz', '')
 
-        newly_created = svj.genprod.utils.create_directory(dst, force=self.force_renew_tarball)
+        newly_created = svj.core.utils.create_directory(dst, force=self.force_renew_tarball)
         if newly_created:
             logger.warning('Extracting tarball')
             cmd = [ 'tar', 'xf', tarball, '--directory', dst ]
-            svj.genprod.utils.run_command(cmd)
+            svj.core.utils.run_command(cmd)
             logger.info('Done extracting tarball')
 
         return dst
@@ -104,9 +104,9 @@ class LHEMaker(object):
                 'File \'runcmsgrid.sh\' does not exist in {0}'
                 .format(extracted_tarball)
                 )
-        with svj.genprod.utils.switchdir(extracted_tarball):
+        with svj.core.utils.switchdir(extracted_tarball):
             cmd = [ 'bash', 'runcmsgrid.sh', str(self.n_events), str(self.seed) ]
-            svj.genprod.utils.run_command(cmd)
+            svj.core.utils.run_command(cmd)
         self.out_lhe_file = osp.join(extracted_tarball, 'cmsgrid_final.lhe')
         self.replace_pids(self.out_lhe_file)
 
@@ -131,7 +131,7 @@ class LHEMaker(object):
         a better file name for the just-created .lhe file
         """
         if output_dir is None: output_dir = svj.genprod.SVJ_OUTPUT_DIR
-        svj.genprod.utils.create_directory(output_dir, dry=dry)
+        svj.core.utils.create_directory(output_dir, dry=dry)
         dst = osp.join(
             output_dir,
             'lhe_{0}_N{1}_seed{2}.lhe'.format(self.model_name, self.n_events, self.seed)

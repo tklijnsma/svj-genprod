@@ -26,9 +26,10 @@ class SHClean(SHBase):
     def __init__(self):
         super(SHClean, self).__init__()
         self.lines = [
-            'rm *.stdout',
-            'rm *.stderr',
-            'rm *.log'
+            'rm *.stdout    > /dev/null 2>& 1'
+            'rm *.stderr    > /dev/null 2>& 1'
+            'rm *.log       > /dev/null 2>& 1'
+            'rm docker_stderror > /dev/null 2>& 1'
             ]
 
     def parse(self):
@@ -45,6 +46,12 @@ class SHStandard(SHBase):
         if not(svjgenprod_tarball is None):
             self.repo_from_tarball = True
             self.svjgenprod_tarball = svjgenprod_tarball
+
+        self.code_tarballs = []
+
+
+    def add_code_tarball(self, code_tarball):
+        self.code_tarballs.append(code_tarball)
 
 
     def clone(self):
@@ -83,6 +90,31 @@ class SHStandard(SHBase):
         return sh
 
 
+    def install_code_tarballs(self):
+        def code_tarball_iterator(code_tarballs):
+            for tarball in code_tarballs:
+                tarball = osp.basename(tarball)
+                name = tarball.split('.')[0]
+                yield tarball, name
+
+        sh = []
+        # First untar all tarballs
+        for tarball, name in code_tarball_iterator(self.code_tarballs):
+            sh.extend([
+                'mkdir {0}'.format(name),
+                'tar xf {0} -C {1}'.format(tarball, name),
+                ])
+        # Source the env script
+        sh.append('source svj-core/env.sh')
+        # Add the package paths
+        for tarball, name in code_tarball_iterator(self.code_tarballs):
+            sh.extend([
+                'export PATH="${{PWD}}/svj/{0}/bin:${{PATH}}"'.format(name),
+                'export PYTHONPATH="${{PWD}}/{0}:${{PYTHONPATH}}"'.format(name),
+                ])
+        return sh
+
+
     def parse(self):
         sh = []
         echo = lambda text: sh.append('echo "{0}"'.format(text))
@@ -96,15 +128,11 @@ class SHStandard(SHBase):
         sh.append('export SVJ_SEED=$1')
         echo('seed:     ${SVJ_SEED}')
 
-        sh.extend(self.clone())
+        sh.extend(self.install_code_tarballs())
 
         sh.append('mkdir output')
         echo('ls -al:')
         sh.append('ls -al')
-
-        sh.append('source svj.genprod/env.sh')
-
-        sh.extend(self.install())
 
         echo('Starting python {0}'.format(osp.basename(self.python_file)))
         sh.append('python {0}'.format(osp.basename(self.python_file)))

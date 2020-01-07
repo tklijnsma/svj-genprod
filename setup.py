@@ -12,6 +12,6 @@ setup(
     packages      = find_packages(),
     zip_safe      = False,
     scripts       = [
-        'svj/bin/svjgenprod-batch',
+        'svj/bin/svj-genprod-batch',
         ],
     )

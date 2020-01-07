@@ -57,13 +57,13 @@ class FullSimRunnerBase(object):
         May re-create once, but should not do anything after that
         """
         if not self._create_workdir_called:
-            svj.genprod.utils.create_directory(self.workdir, force=self._force_renew_workdir)
+            svj.core.utils.create_directory(self.workdir, force=self._force_renew_workdir)
         self._create_workdir_called = True
         self._force_renew_workdir = False
 
     def setup_cmssw(self):
         self.create_workdir()
-        svj.genprod.utils.setup_cmssw(self.workdir, self.cmssw_version, self.arch)
+        svj.core.utils.setup_cmssw(self.workdir, self.cmssw_version, self.arch)
 
     def copy_pileup_filelist(self):
         file_list = os.path.join(svj.genprod.SVJ_INPUT_DIR, 'pileupfilelists', self.pileup_filelist_basename)
@@ -74,7 +74,7 @@ class FullSimRunnerBase(object):
         return osp.join(self.workdir, self.cmssw_version, 'src')
 
     def compile_cmssw(self):
-        svj.genprod.utils.compile_cmssw_src(self.get_cmssw_src(), self.arch)
+        svj.core.utils.compile_cmssw_src(self.get_cmssw_src(), self.arch)
 
     def source_cmssw_cmds(self, cmssw_src=None):
         """
@@ -96,7 +96,7 @@ class FullSimRunnerBase(object):
     def cmsdriver(self):
         cmds = self.source_cmssw_cmds()
         cmds.append(self.get_cmsdriver_cmd())
-        svj.genprod.utils.run_multiple_commands(cmds)
+        svj.core.utils.run_multiple_commands(cmds)
 
     def edit_cmsdriver_output(self):
         """
@@ -134,7 +134,7 @@ class FullSimRunnerBase(object):
     def cmsrun(self):
         cmds = self.source_cmssw_cmds()
         cmds.append('cmsRun {0}'.format(self.cfg_file_basename))
-        svj.genprod.utils.run_multiple_commands(cmds)
+        svj.core.utils.run_multiple_commands(cmds)
 
     def full_chain(self):
         self.setup_cmssw()
@@ -156,7 +156,7 @@ class FullSimRunnerBase(object):
 
     def copy_to_output(self, output_dir=None, dry=False):
         if output_dir is None: output_dir = svj.genprod.SVJ_OUTPUT_DIR
-        svj.genprod.utils.create_directory(output_dir)
+        svj.core.utils.create_directory(output_dir)
         dst = osp.join(output_dir, osp.basename(self.out_root_file))
         logger.info('Copying {0} ==> {1}'.format(self.out_root_file, dst))
         if not dry:
@@ -164,7 +164,7 @@ class FullSimRunnerBase(object):
 
     def move_to_output(self, output_dir=None, dry=False):
         if output_dir is None: output_dir = svj.genprod.SVJ_OUTPUT_DIR
-        svj.genprod.utils.create_directory(output_dir)
+        svj.core.utils.create_directory(output_dir)
         dst = osp.join(output_dir, osp.basename(self.out_root_file))
         logger.info('Moving {0} ==> {1}'.format(self.out_root_file, dst))
         if not dry:
