@@ -25,7 +25,8 @@ def run_parser():
 
 def main():
     args = run_parser()
-    submitter = svj.genprod.condor.submitter.PySubmitter(args.pythonfile)
+    # submitter = svj.genprod.condor.submitter.PySubmitter(args.pythonfile)
+    submitter = svj.core.condor.submitters.ProductionSubmitter(args.pythonfile)
     submitter.submit(dry=args.dry)
 
 #____________________________________________________________________
