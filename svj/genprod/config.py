@@ -103,8 +103,8 @@ class Config(dict):
                 )
 
         model_name = 'SVJ_{channel}_{year}_m{med}{m_med}_mDQ{m_d}_rinv{rinv}_aD{alphad}'.format(
-            rinv   = str(self['r_inv']).replace('.', 'p'),
-            alphad = str(self['alpha_d']).replace('.', 'p'),
+            rinv   = str(self['r_inv']).replace('.', 'p').replace('-', 'm'),
+            alphad = str(self['alpha_d']).replace('.', 'p').replace('-', 'm'),
             channel = self['process_type'][0],
             med    = med_type,
             year   = self['year'],
