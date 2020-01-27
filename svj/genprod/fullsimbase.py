@@ -6,6 +6,7 @@ import os, shutil, sys, glob, subprocess, re, logging
 import os.path as osp
 from time import strftime
 
+import svj.core
 import svj.genprod
 logger = logging.getLogger('root')
 
@@ -83,6 +84,8 @@ class FullSimRunnerBase(object):
         """
         cmssw_src = self.get_cmssw_src() if cmssw_src is None else cmssw_src
         cmds = [
+            'export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch/',
+            'source /cvmfs/cms.cern.ch/cmsset_default.sh',
             'shopt -s expand_aliases',
             'source /cvmfs/cms.cern.ch/cmsset_default.sh',
             'cd {0}'.format(cmssw_src),
@@ -96,7 +99,7 @@ class FullSimRunnerBase(object):
     def cmsdriver(self):
         cmds = self.source_cmssw_cmds()
         cmds.append(self.get_cmsdriver_cmd())
-        svj.core.utils.run_multiple_commands(cmds)
+        svj.core.utils.run_multiple_commands(cmds, env=svj.core.utils.get_clean_env())
 
     def edit_cmsdriver_output(self):
         """
@@ -134,7 +137,7 @@ class FullSimRunnerBase(object):
     def cmsrun(self):
         cmds = self.source_cmssw_cmds()
         cmds.append('cmsRun {0}'.format(self.cfg_file_basename))
-        svj.core.utils.run_multiple_commands(cmds)
+        svj.core.utils.run_multiple_commands(cmds, env=svj.core.utils.get_clean_env())
 
     def full_chain(self):
         self.setup_cmssw()

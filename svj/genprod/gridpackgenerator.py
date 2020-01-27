@@ -180,13 +180,17 @@ class GridpackGenerator(object):
                 if var in env: del env[var]
 
             cmd = [
-                'bash',
-                'gridpack_generation.sh',
-                self.model_name,
-                input_cards_dir_relative,
-                ]
+                    'source /cvmfs/cms.cern.ch/cmsset_default.sh',
+                    ['bash',
+                        'gridpack_generation.sh',
+                        self.model_name,
+                        input_cards_dir_relative,
+                        ],
+                    ]
             try:
-                svj.core.utils.run_command(cmd, env=env)
+                # svj.core.utils.run_command(cmd, env=env)
+                # svj.core.utils.run_command(cmd, env=svj.core.utils.get_clean_env())
+                svj.core.utils.run_multiple_commands(cmd, env=svj.core.utils.get_clean_env())
                 if self.cleanup_gp_generation_dir:
                     logger.warning('Deleting %s', self.model_name)
                     shutil.rmtree(self.model_name)

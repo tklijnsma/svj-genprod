@@ -6,6 +6,7 @@ import os, shutil, sys, glob, subprocess, re, logging
 import os.path as osp
 from time import strftime
 
+import svj.core
 import svj.genprod
 
 logger = logging.getLogger('root')
@@ -106,7 +107,7 @@ class LHEMaker(object):
                 )
         with svj.core.utils.switchdir(extracted_tarball):
             cmd = [ 'bash', 'runcmsgrid.sh', str(self.n_events), str(self.seed) ]
-            svj.core.utils.run_command(cmd)
+            svj.core.utils.run_command(cmd, env=svj.core.utils.get_clean_env())
         self.out_lhe_file = osp.join(extracted_tarball, 'cmsgrid_final.lhe')
         self.replace_pids(self.out_lhe_file)
 
