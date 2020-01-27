@@ -118,8 +118,3 @@ import calc_dark_params as cdp
 from .gensimfragment import GenSimFragment
 from .fullsimbase import FullSimRunnerBase
 import fullsimrunners
-
-# import condor.jdlfile
-# import condor.shfile
-# import condor.submitter
-
