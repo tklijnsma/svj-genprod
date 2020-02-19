@@ -120,8 +120,17 @@ class LHEMaker(object):
             return contents.replace(src, dst)
         if self.config['process_type'].startswith('s'):
             contents = replace(contents, '5000521', '4900101')
+        elif self.config['process_type'].startswith('t'):
+            contents = replace(contents, '49001010', '4900101')
+            contents = replace(contents, '49001011', '4900101')
+            contents = replace(contents, '49001012', '4900101')
+            contents = replace(contents, '49001013', '4900101')
+            contents = replace(contents, '49001014', '4900101')
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                'Process type \'{0}\' is not implemented, only s- and t-channel are.'
+                .format(self.config['process_type'])
+                )
         logger.warning('Overwriting {0} with replacements'.format(lhe_file))
         with open(lhe_file, 'w') as f:
             f.write(contents)
