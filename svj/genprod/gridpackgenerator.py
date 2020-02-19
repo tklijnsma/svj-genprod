@@ -16,7 +16,33 @@ from .lhaIDs import lhaIDs
 
 #____________________________________________________________________
 class GridpackGenerator(object):
-    """docstring for GridpackGenerator"""
+    """
+    Generates SVJ gridpacks/tarballs based on the given config.
+
+    The initialization takes care of reading the config, and setting
+    paths to the required MadGraph input (also contained in this repository in `input/1).
+
+    The method `run_gridpack_generation` calls in order:
+
+    `setup_model_dir`:
+        Creates a new directory (default: /tmp/svj/models/<model_name>), copies in model template
+        files and fills in the templates.
+        Also writes a parameter card using `write_param_card.py`
+
+    `setup_input_dir`:
+        Creates a new directory (default: /tmp/svj/inputs/<model_name>), copies in input template
+        files and fills in the templates. It then creates a tarball out of the input files, which
+        is what will be used by MadGraph.
+
+    `compile_gridpack`:
+        Goes into wherever the CMSSW genproductions package is setup and calls 
+        `gridpack_generation.sh` with the right paths to the model and input dirs.
+        This produces the actual tarball, in the CMSSW genproductions directory.
+        Use the method `move_to_output` to move the tarball to a sensible location.
+
+
+
+    """
 
     def __init__(self, config):
         super(GridpackGenerator, self).__init__()
@@ -54,7 +80,7 @@ class GridpackGenerator(object):
 
     def define_paths(self):
         """
-        Uses the variables from the config to determine paths and
+        Uses the variables from the config to determine paths to the input and
         the model name.
 
         Split function from init so that it's possible to tweak config parameters
@@ -78,6 +104,10 @@ class GridpackGenerator(object):
         self.new_model_dir = os.path.join(self.mg_model_dir, self.model_name)
 
     def run_gridpack_generation(self):
+        """
+        Main method to be called to create a tarball. See the docs for the individual methods for
+        further details.
+        """
         self.setup_model_dir()
         self.setup_input_dir()
         self.compile_gridpack()
@@ -87,6 +117,11 @@ class GridpackGenerator(object):
         self.write_param_card()
 
     def create_model_dir(self):
+        """
+        Creates a directory for the madgraph models, copies the template files, and fills
+        in the templates
+        """
+        # Create a models directory only if it doesn't already exist
         created = svj.core.utils.create_directory(self.new_model_dir, force=self.force_renew_model_dir)
         if not created:
             logger.info('Not re-copying in template files')
@@ -105,6 +140,10 @@ class GridpackGenerator(object):
         logger.info('New parameters written in model files!')
 
     def write_param_card(self):
+        """
+        Using the freshly copied file `write_param_card.py`, create the parameter card
+        `param_card.dat`.
+        """
         logger.info('Writing param_card.dat')
         # Use the write_param_card.py module that is in the newly created model_dir
         sys.path.append(self.new_model_dir)
@@ -114,6 +153,11 @@ class GridpackGenerator(object):
         logger.info('Done writing param_card.dat')
 
     def setup_input_dir(self):
+        """
+        Creates a directory for the MadGraph input cards, copies in the right templates
+        and fills in the templates.
+        It then creates a tarball of the input files, which is needed by MadGraph.
+        """
         self.new_input_dir = osp.join(self.mg_input_dir, self.model_name + '_input')
         logger.info('Preparing input_cards_dir: {0}'.format(self.new_input_dir))
         logger.info('Getting templates from mg_input_template_dir: {0}'.format(self.template_input_dir))
@@ -131,7 +175,6 @@ class GridpackGenerator(object):
                 )
             out_contents = fill_template(
                 card_file = template,
-                # model_name = 'DMsimp_SVJ_s_spin1' if template.endswith('extramodels.dat') else self.model_name,
                 model_name = self.model_name,
                 total_events = self.n_events,
                 lhaid = lhaIDs[self.year]
@@ -140,7 +183,7 @@ class GridpackGenerator(object):
             with open(out_file, 'w') as f:
                 f.write(out_contents)
 
-        logger.info('Tarring up input_cards_dir')
+        logger.info('Tarring up input_cards_dir in the model directory %s', self.mg_model_dir)
         shutil.make_archive(
             base_name = osp.join(self.new_input_dir, self.model_name),
             format =  'tar',
@@ -152,6 +195,15 @@ class GridpackGenerator(object):
 
 
     def compile_gridpack(self):
+        """
+        Using the `models` and `inputs` directories, create the actual tarball.
+        This requires that the CMSSW genproductions package is installed.
+
+        The cwd will first be switched to wherever the CMSSW genproductions package is installed,
+        a new directory for the tarball generation is creatd, and then `gridpack_generation.sh`, the
+        main CMSSW script for tarball generation, is called with the input directory as an argument.
+
+        """
         with svj.core.utils.switchdir(self.mg_genprod_dir):
             assert osp.isfile('gridpack_generation.sh')
             self.logfile = osp.abspath(self.model_name + '.log') # Expected location of log file
@@ -188,10 +240,9 @@ class GridpackGenerator(object):
                         ],
                     ]
             try:
-                # svj.core.utils.run_command(cmd, env=env)
-                # svj.core.utils.run_command(cmd, env=svj.core.utils.get_clean_env())
                 svj.core.utils.run_multiple_commands(cmd, env=svj.core.utils.get_clean_env())
                 if self.cleanup_gp_generation_dir:
+                    # Clean up the tarball creation directory as it is quite large
                     logger.warning('Deleting %s', self.model_name)
                     shutil.rmtree(self.model_name)
             except subprocess.CalledProcessError:
@@ -211,7 +262,7 @@ class GridpackGenerator(object):
 
     def _get_output_files_and_dirs(self):
         """
-        Collects all files to be copied into a list, and makes a destination dir
+        Collects all files to be copied into a list
         """
         return glob.glob(osp.join(self.mg_genprod_dir, self.model_name + '*'))  # Includes a log
 

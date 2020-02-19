@@ -73,13 +73,18 @@ class GenSimFragment(object):
 
 
     def get_xsec(self):
-        if self.process_type.startswith('s'):
-            self.x_sec = svj.genprod.utils.crosssection_from_file(
-                osp.join(svj.genprod.SVJ_INPUT_DIR, 'xsecs_s-channel.txt'),
-                self.m_med
+        if not (self.process_type.startswith('s') or self.process_type.startswith('t')):
+            raise NotImplementedError(
+                'Found process_type \'{0}\'; the only implemented process '
+                'types are s and t.'
+                .format(self.process_type)
                 )
-        else:
-            raise NotImplementedError
+        xs_file = 'xsecs_s-channel.txt' if self.process_type.startswith('s') else 'xsecs_t-channel.txt'
+        xs_file = osp.join(svj.genprod.SVJ_INPUT_DIR, xs_file)
+        if self.process_type.startswith('t'):
+            # Delete this error when the cross sections are updated properly
+            logger.error('FIXME: Cross sections in %s are completely made up at the moment')
+        self.x_sec = svj.genprod.utils.crosssection_from_file(xs_file, self.m_med)
 
 
     def get_pythia_info(self):
